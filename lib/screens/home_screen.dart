@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart';
-
+﻿import 'package:flutter/material.dart';
 import '../services/app_state.dart';
 import '../services/audio_service.dart';
-import '../widgets/student_sync_status_button.dart';
 import 'concept_screen.dart';
 import 'exit.dart';
 import 'game_screen.dart';
@@ -67,13 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         state: widget.state,
                         audio: widget.audio,
                       ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: StudentSyncStatusIndicator(state: widget.state),
-                      ),
-                      const SizedBox(width: 6),
                       _ImageIconButton(
-                        tooltip: widget.state.text('Settings', 'Mga Setting'),
+                        tooltip: 'Settings',
                         asset: 'assets/images/settings_icon.png',
                         onTap: () => _go(SettingsScreen(
                           state: widget.state,
@@ -103,47 +96,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const _BeaconHomeLogo(),
                                 const SizedBox(height: 32),
                                 _HomeAssetButton(
-                                  semanticsLabel:
-                                      widget.state.text('Concept', 'Konsepto'),
-                                  asset: widget.state.isTagalog
-                                      ? 'assets/images/Glossy neon Konsepto menu button-1.png'
-                                      : 'assets/images/concept_button.png',
-                                  onTap: () =>
-                                      _go(ConceptScreen(state: widget.state)),
-                                ),
-                                const SizedBox(height: 8),
-                                _HomeAssetButton(
-                                  semanticsLabel: widget.state
-                                      .text('Simulation', 'Simulasyon'),
-                                  asset: widget.state.isTagalog
-                                      ? 'assets/images/Glossy Simulasyon menu button.png'
-                                      : 'assets/images/simulation_button.png',
+                                  semanticsLabel: 'Concept',
+                                  asset: 'assets/images/concept_button.png',
                                   onTap: () => _go(
-                                    SimulationScreen(
-                                      state: widget.state,
-                                      audio: widget.audio,
-                                    ),
+                                    ConceptScreen(state: widget.state),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 _HomeAssetButton(
-                                  semanticsLabel:
-                                      widget.state.text('Game', 'Laro'),
-                                  asset: widget.state.isTagalog
-                                      ? 'assets/images/Glossy Laro Menu Button-3.png'
-                                      : 'assets/images/game_button.png',
-                                  onTap: () => _go(GameScreen(
-                                    state: widget.state,
-                                    audio: widget.audio,
-                                  )),
+                                  semanticsLabel: 'Simulation',
+                                  asset: 'assets/images/simulation_button.png',
+                                  onTap: () => _go(
+                                    SimulationScreen(audio: widget.audio),
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 _HomeAssetButton(
-                                  semanticsLabel:
-                                      widget.state.text('Quiz', 'Pagsusulit'),
-                                  asset: widget.state.isTagalog
-                                      ? 'assets/images/Glossy Pagsusulit menu button-2.png'
-                                      : 'assets/images/quiz_button.png',
+                                  semanticsLabel: 'Quiz',
+                                  asset: 'assets/images/quiz_button.png',
                                   onTap: () => _go(QuizScreen(
                                     state: widget.state,
                                     audio: widget.audio,
@@ -151,11 +121,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 _HomeAssetButton(
-                                  semanticsLabel:
-                                      widget.state.text('Exit', 'Lumabas'),
-                                  asset: widget.state.isTagalog
-                                      ? 'assets/images/Glossy Lumabas button with neon glow-4.png'
-                                      : 'assets/images/exit_button.png',
+                                  semanticsLabel: 'Game',
+                                  asset: 'assets/images/game_button.png',
+                                  onTap: () => _go(GameScreen(
+                                    state: widget.state,
+                                    audio: widget.audio,
+                                  )),
+                                ),
+                                const SizedBox(height: 8),
+                                _HomeAssetButton(
+                                  semanticsLabel: 'Exit',
+                                  asset: 'assets/images/exit_button.png',
                                   onTap: () => requestAppExit(
                                     context,
                                     widget.audio,
@@ -238,12 +214,12 @@ class _HomeAssetButton extends StatefulWidget {
   const _HomeAssetButton({
     required this.semanticsLabel,
     required this.asset,
-    this.onTap,
+    required this.onTap,
   });
 
   final String semanticsLabel;
   final String asset;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   State<_HomeAssetButton> createState() => _HomeAssetButtonState();
@@ -253,37 +229,33 @@ class _HomeAssetButtonState extends State<_HomeAssetButton> {
   bool _pressed = false;
 
   @override
-  Widget build(BuildContext context) {
-    final enabled = widget.onTap != null;
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: widget.semanticsLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
-        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
-        child: AnimatedScale(
-          scale: _pressed ? 1.035 : 1,
-          duration: const Duration(milliseconds: 110),
-          curve: _pressed ? Curves.easeOut : Curves.easeOutBack,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 320),
-              child: AspectRatio(
-                aspectRatio: 3,
-                child: Image.asset(
-                  widget.asset,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: widget.semanticsLabel,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          child: AnimatedScale(
+            scale: _pressed ? 1.035 : 1,
+            duration: const Duration(milliseconds: 110),
+            curve: _pressed ? Curves.easeOut : Curves.easeOutBack,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: AspectRatio(
+                  aspectRatio: 3,
+                  child: Image.asset(
+                    widget.asset,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

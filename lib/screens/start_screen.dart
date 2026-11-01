@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 
 import '../services/app_state.dart';
 import '../services/audio_service.dart';
 import 'fill_out_screen.dart';
+import 'sessions.dart';
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key, required this.state, required this.audio});
@@ -19,90 +18,40 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  late final VideoPlayerController _video;
-  late final AnimationController _buttonPulse;
-  late final Animation<double> _buttonScale;
-  bool _videoReady = false;
-  bool _starting = false;
+    with TickerProviderStateMixin {
+  late final AnimationController _logoMotion;
+  late final AnimationController _buttonMotion;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _buttonPulse = AnimationController(
+    _logoMotion = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 180),
-    );
-    _buttonScale = Tween<double>(begin: 1, end: 1.12).animate(
-      CurvedAnimation(parent: _buttonPulse, curve: Curves.easeInOut),
-    );
-    _video = VideoPlayerController.asset(
-      'assets/video/beacon_animated_background_h264.mp4',
-      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-    );
-    unawaited(_initializeVideo());
-  }
-
-  Future<void> _initializeVideo() async {
-    try {
-      await _video.initialize();
-      await _video.setLooping(true);
-      await _video.setVolume(0);
-      if (!mounted) return;
-      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed ||
-          WidgetsBinding.instance.lifecycleState == null) {
-        await _video.play();
-      }
-      if (mounted) setState(() => _videoReady = true);
-    } catch (_) {
-      // The matching image remains visible if video playback is unavailable.
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_videoReady) return;
-    unawaited(_updatePlayback(state == AppLifecycleState.resumed));
-  }
-
-  Future<void> _updatePlayback(bool playing) async {
-    try {
-      if (playing) {
-        await _video.play();
-      } else {
-        await _video.pause();
-      }
-    } catch (_) {
-      if (mounted) setState(() => _videoReady = false);
-    }
+      duration: const Duration(seconds: 12),
+    )..repeat();
+    _buttonMotion = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _buttonPulse.dispose();
-    unawaited(_video.dispose());
+    _logoMotion.dispose();
+    _buttonMotion.dispose();
     super.dispose();
   }
 
-  Future<void> _start(BuildContext context) async {
-    if (_starting) return;
-    _starting = true;
-    await _buttonPulse.forward();
-    await _buttonPulse.reverse();
-    if (!mounted || !context.mounted) return;
-    setState(() => _starting = true);
+  void _start(BuildContext context) {
     widget.audio.effect('tap');
     widget.audio.syncMusic();
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(
-      settings: const RouteSettings(name: 'fill-out'),
-      builder: (_) => FillOutScreen(state: widget.state, audio: widget.audio),
-    ))
-        .then((_) {
-      if (mounted) setState(() => _starting = false);
-    });
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => widget.state.hasLearnerProfile
+            ? SessionsScreen(state: widget.state, audio: widget.audio)
+            : FillOutScreen(state: widget.state, audio: widget.audio),
+      ),
+    );
   }
 
   @override
@@ -120,21 +69,21 @@ class _StartScreenState extends State<StartScreen>
             fit: BoxFit.cover,
             excludeFromSemantics: true,
           ),
-          if (_videoReady && !light) ...[
-            Positioned.fill(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _video.value.size.width,
-                  height: _video.value.size.height,
-                  child: VideoPlayer(_video),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12, right: 16),
+                child: _ThemeModeButton(
+                  light: light,
+                  onTap: () {
+                    widget.audio.effect('tap');
+                    widget.state.setLightMode(!light);
+                  },
                 ),
               ),
             ),
-            const Positioned.fill(
-              child: ColoredBox(color: Color(0xA6000C24)),
-            ),
-          ],
+          ),
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -150,38 +99,62 @@ class _StartScreenState extends State<StartScreen>
                 return Column(
                   children: [
                     const Spacer(flex: 2),
-                    Image.asset(
-                      'assets/images/Logo_start.png',
-                      width: logoWidth,
-                      semanticLabel: 'BEACON: Explore, Learn, Apply',
-                    ),
-                    const Spacer(flex: 3),
-                    SizedBox(
-                      width: buttonWidth,
-                      height: math.max(buttonWidth / 3, 78),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        child: _starting
-                            ? const SizedBox.shrink()
-                            : Semantics(
-                                key: const ValueKey('start-button'),
-                                button: true,
-                                label: 'Start',
-                                child: ScaleTransition(
-                                  scale: _buttonScale,
-                                  child: InkWell(
-                                    onTap: () => _start(context),
-                                    borderRadius: BorderRadius.circular(50),
-                                    child: Image.asset(
-                                      light
-                                          ? 'assets/images/Start_light.png'
-                                          : 'assets/images/Start_dark.png',
-                                      width: buttonWidth,
-                                      excludeFromSemantics: true,
+                    AnimatedBuilder(
+                      animation: _logoMotion,
+                      builder: (context, child) {
+                        final phase = _logoMotion.value * math.pi * 2;
+                        return Transform.translate(
+                          offset: Offset(
+                            math.cos(phase) * 3,
+                            math.sin(phase) * 3,
+                          ),
+                          child: Transform.rotate(
+                            angle: math.sin(phase) * 0.008,
+                            child: Stack(
+                              children: [
+                                Image.asset(
+                                  'assets/images/Logo_start.png',
+                                  width: logoWidth,
+                                  semanticLabel:
+                                      'BEACON: Explore, Learn, Apply',
+                                ),
+                                Positioned.fill(
+                                  child: IgnorePointer(
+                                    child: CustomPaint(
+                                      painter: _LogoWaterPainter(phase),
                                     ),
                                   ),
                                 ),
-                              ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const Spacer(flex: 3),
+                    AnimatedBuilder(
+                      animation: _buttonMotion,
+                      builder: (context, child) => Transform.translate(
+                        offset: Offset(0, -4 * _buttonMotion.value),
+                        child: Transform.scale(
+                          scale: 1 + 0.025 * _buttonMotion.value,
+                          child: child,
+                        ),
+                      ),
+                      child: Semantics(
+                        button: true,
+                        label: 'Start',
+                        child: InkWell(
+                          onTap: () => _start(context),
+                          borderRadius: BorderRadius.circular(50),
+                          child: Image.asset(
+                            light
+                                ? 'assets/images/Start_light.png'
+                                : 'assets/images/Start_dark.png',
+                            width: buttonWidth,
+                            excludeFromSemantics: true,
+                          ),
+                        ),
                       ),
                     ),
                     const Spacer(flex: 2),
@@ -190,142 +163,165 @@ class _StartScreenState extends State<StartScreen>
               },
             ),
           ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 16, right: 16),
-                child: _StartThemeToggle(
-                  lightMode: light,
-                  onTap: () {
-                    widget.audio.effect('tap');
-                    widget.state.setLightMode(!light);
-                  },
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _StartThemeToggle extends StatelessWidget {
-  const _StartThemeToggle({
-    required this.lightMode,
-    required this.onTap,
-  });
+class _ThemeModeButton extends StatelessWidget {
+  const _ThemeModeButton({required this.light, required this.onTap});
 
-  final bool lightMode;
+  final bool light;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        toggled: !lightMode,
-        label: lightMode ? 'Switch to dark mode' : 'Switch to light mode',
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: light ? 'Switch to dark mode' : 'Switch to light mode',
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            width: 92,
-            height: 44,
-            padding: const EdgeInsets.all(3),
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            width: 112,
+            height: 54,
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                colors: lightMode
-                    ? const <Color>[Color(0xFFF8FDFF), Color(0xFFDDF5FF)]
-                    : const <Color>[Color(0xFF043B80), Color(0xFF101A7B)],
-              ),
-              border: Border.all(
-                color: const Color(0xFF2BE6FF),
-                width: 2,
-              ),
+              color: light ? const Color(0xEFFFFFFF) : const Color(0xE60B2C68),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: const Color(0xFF12DDF5), width: 2),
               boxShadow: const <BoxShadow>[
                 BoxShadow(
-                  color: Color(0x9900CFFF),
-                  blurRadius: 13,
+                  color: Color(0x6612DDF5),
+                  blurRadius: 12,
                   spreadRadius: 1,
                 ),
               ],
             ),
             child: Stack(
               children: <Widget>[
-                const Positioned(
-                  left: 10,
-                  top: 0,
-                  bottom: 0,
-                  child: Icon(
-                    Icons.wb_sunny_rounded,
-                    color: Color(0xFFFFC400),
-                    size: 21,
-                  ),
-                ),
-                const Positioned(
-                  right: 10,
-                  top: 0,
-                  bottom: 0,
-                  child: Icon(
-                    Icons.nightlight_round,
-                    color: Color(0xFFFFFFFF),
-                    size: 21,
-                  ),
-                ),
                 AnimatedAlign(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutBack,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
                   alignment:
-                      lightMode ? Alignment.centerLeft : Alignment.centerRight,
+                      light ? Alignment.centerLeft : Alignment.centerRight,
                   child: Container(
-                    width: 35,
-                    height: 35,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: lightMode
-                            ? const <Color>[
-                                Color(0xFFFFFFFF),
-                                Color(0xFFCFF7FF),
-                              ]
-                            : const <Color>[
-                                Color(0xFFB51CFF),
-                                Color(0xFF075BFF),
-                              ],
-                      ),
-                      border: Border.all(
-                        color: lightMode
-                            ? const Color(0xFF70EDFF)
-                            : const Color(0xFFFF65FB),
-                        width: 2,
-                      ),
-                      boxShadow: <BoxShadow>[
+                      color: light
+                          ? const Color(0xFFF7FCFF)
+                          : const Color(0xFF3152D7),
+                      boxShadow: const <BoxShadow>[
                         BoxShadow(
-                          color: (lightMode
-                                  ? const Color(0xFF00D9FF)
-                                  : const Color(0xFFCA27FF))
-                              .withValues(alpha: 0.75),
-                          blurRadius: 8,
+                          color: Color(0x5512DDF5),
+                          blurRadius: 7,
                         ),
                       ],
                     ),
-                    child: Icon(
-                      lightMode
-                          ? Icons.wb_sunny_rounded
-                          : Icons.nightlight_round,
-                      color: lightMode ? const Color(0xFFFFC400) : Colors.white,
-                      size: 22,
-                    ),
                   ),
+                ),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Icon(
+                        Icons.wb_sunny_rounded,
+                        color: light
+                            ? const Color(0xFFFFC400)
+                            : const Color(0xFF8FA8DC),
+                        size: 27,
+                      ),
+                    ),
+                    Expanded(
+                      child: Icon(
+                        Icons.dark_mode_rounded,
+                        color: light ? Colors.white : const Color(0xFFF2F5FF),
+                        size: 26,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LogoWaterPainter extends CustomPainter {
+  const _LogoWaterPainter(this.phase);
+
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final circle = Rect.fromLTWH(
+      size.width * 0.14,
+      size.height * 0.01,
+      size.width * 0.72,
+      size.height * 0.69,
+    );
+    canvas.save();
+    canvas.clipPath(Path()..addOval(circle));
+
+    for (var layer = 0; layer < 2; layer++) {
+      final wave = Path();
+      final surface = Path();
+      final base = circle.top + circle.height * (0.58 + layer * 0.10);
+      for (double x = circle.left; x <= circle.right + 3; x += 3) {
+        final progress = (x - circle.left) / circle.width;
+        final y = base +
+            math.sin(progress * math.pi * 3 + phase * (layer == 0 ? 1 : -0.7)) *
+                circle.height *
+                0.035;
+        if (x == circle.left) {
+          wave.moveTo(x, y);
+          surface.moveTo(x, y);
+        } else {
+          wave.lineTo(x, y);
+          surface.lineTo(x, y);
+        }
+      }
+      surface
+        ..lineTo(circle.right, circle.bottom)
+        ..lineTo(circle.left, circle.bottom)
+        ..close();
+      canvas.drawPath(
+        surface,
+        Paint()
+          ..color =
+              layer == 0 ? const Color(0x225ADFFF) : const Color(0x183BBAFF),
       );
+      canvas.drawPath(
+        wave,
+        Paint()
+          ..color = const Color(0x665EE7FF)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    }
+
+    canvas.drawArc(
+      circle.deflate(2),
+      phase,
+      math.pi * 0.27,
+      false,
+      Paint()
+        ..color = const Color(0x8877EEFF)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _LogoWaterPainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
