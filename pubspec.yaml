@@ -1,0 +1,77 @@
+name: physics_of_fluids
+description: Interactive Grade 11 physics of fluids learning app.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  audioplayers: ^6.4.0
+  connectivity_plus: ^7.0.0
+  image_picker: ^1.2.3
+  path: ^1.9.0
+  shared_preferences: ^2.3.3
+  sqflite: ^2.4.2
+  sqflite_common_ffi_web: 1.1.1
+  supabase_flutter: ^2.18.3
+  uuid: ^4.5.2
+  video_player: ^2.10.1
+  flutter_dotenv: ^6.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  shared_preferences_platform_interface: ^2.4.2
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+
+    - assets/images/session_1_ocean_fluids_banner.png
+    - assets/images/fill_out_panel_light.png
+    - assets/images/fill_out_panel_dark.png
+    - assets/images/fill_out_profile_icon.png
+    - assets/images/photo_profile_panel_light.png
+    - assets/images/photo_profile_panel_dark.png
+    - assets/images/progress_background_light.png
+    - assets/images/progress_background_dark.png
+    - assets/images/Crisp Four-Metric Progress Dashboard.png
+    - assets/images/Glowing dark-blue rounded UI panel.png
+    - assets/images/Session 1 water drop lesson-2.png
+    - assets/images/Session 1 Button Without Play Icon-1.png
+    - assets/images/simulation_light_inside_only.png
+    - assets/images/simulation_dark_inside_only.png
+    - assets/images/quiz_light_inside_only.png
+    - assets/images/quiz_dark_inside_only.png
+    - assets/images/game_light_inside_only.png
+    - assets/images/game_dark_inside_only.png
+    - assets/images/Neon View Details Button-8.png
+    - assets/images/Neon purple View Details button-7.png
+    - assets/images/Glossy Neon View Details Button-9.png
+    - .env
+    - assets/images/
+    - assets/audio/
+    - assets/video/
+    - sqlite/
+    - sqlite/session1/
+    - sqlite/session2/
+    - sqlite/session3/
+    - sqlite/session4/
+    - sqlite/session5/
+    - sqlite/session6/
+    - sqlite/session7/
+    - sqlite/session8/
+  # ADDED: Folder containing the app icon
+    - assets/icon/
+
+# ADDED: Launcher icon configuration
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21

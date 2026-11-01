@@ -1,0 +1,12 @@
+diff --git a/node_modules/@react-native-async-storage/async-storage/windows/ReactNativeAsyncStorage/ReactNativeAsyncStorage.vcxproj b/node_modules/@react-native-async-storage/async-storage/windows/ReactNativeAsyncStorage/ReactNativeAsyncStorage.vcxproj
+index 29bc021..d67e5a3 100644
+--- a/node_modules/@react-native-async-storage/async-storage/windows/ReactNativeAsyncStorage/ReactNativeAsyncStorage.vcxproj
++++ b/node_modules/@react-native-async-storage/async-storage/windows/ReactNativeAsyncStorage/ReactNativeAsyncStorage.vcxproj
+@@ -73,6 +73,6 @@
+   <PropertyGroup Label="Configuration">
+     <ConfigurationType>DynamicLibrary</ConfigurationType>
+     <CharacterSet>Unicode</CharacterSet>
+-    <PlatformToolset>v143</PlatformToolset>
++    <PlatformToolset>v145</PlatformToolset>
+     <GenerateManifest>false</GenerateManifest>
+   </PropertyGroup>

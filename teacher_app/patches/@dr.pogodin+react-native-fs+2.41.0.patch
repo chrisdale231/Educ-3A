@@ -1,0 +1,12 @@
+diff --git a/node_modules/@dr.pogodin/react-native-fs/windows/ReactNativeFs/ReactNativeFs.vcxproj b/node_modules/@dr.pogodin/react-native-fs/windows/ReactNativeFs/ReactNativeFs.vcxproj
+index 11f5f29..3b3ac8d 100644
+--- a/node_modules/@dr.pogodin/react-native-fs/windows/ReactNativeFs/ReactNativeFs.vcxproj
++++ b/node_modules/@dr.pogodin/react-native-fs/windows/ReactNativeFs/ReactNativeFs.vcxproj
+@@ -49,6 +49,6 @@
+   <PropertyGroup Label="Configuration">
+     <ConfigurationType>DynamicLibrary</ConfigurationType>
+     <CharacterSet>Unicode</CharacterSet>
+-    <PlatformToolset>v143</PlatformToolset>
++    <PlatformToolset>v145</PlatformToolset>
+     <GenerateManifest>false</GenerateManifest>
+   </PropertyGroup>
