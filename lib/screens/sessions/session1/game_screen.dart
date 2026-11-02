@@ -3,9 +3,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../services/app_state.dart';
-import '../services/audio_service.dart';
-import '../widgets/fluid_ui.dart';
+import '../../../services/app_state.dart';
+import '../../../services/audio_service.dart';
+import '../../../widgets/fluid_ui.dart';
 
 class _Challenge {
   const _Challenge(

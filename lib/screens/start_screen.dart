@@ -45,11 +45,12 @@ class _StartScreenState extends State<StartScreen>
   void _start(BuildContext context) {
     widget.audio.effect('tap');
     widget.audio.syncMusic();
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => widget.state.hasLearnerProfile
-            ? SessionsScreen(state: widget.state, audio: widget.audio)
-            : FillOutScreen(state: widget.state, audio: widget.audio),
+        builder: (_) => _LoginRegisterScreen(
+          state: widget.state,
+          audio: widget.audio,
+        ),
       ),
     );
   }
@@ -169,6 +170,336 @@ class _StartScreenState extends State<StartScreen>
   }
 }
 
+class _LoginRegisterScreen extends StatefulWidget {
+  const _LoginRegisterScreen({required this.state, required this.audio});
+
+  final AppState state;
+  final AudioService audio;
+
+  @override
+  State<_LoginRegisterScreen> createState() => _LoginRegisterScreenState();
+}
+
+class _LoginRegisterScreenState extends State<_LoginRegisterScreen> {
+  late final TextEditingController nameController;
+  final formKey = GlobalKey<FormState>();
+  bool submitting = false;
+  bool showLoginError = false;
+  bool loginButtonPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(
+      text: widget.state.hasLearnerProfile ? widget.state.learnerName : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> login() async {
+    if (submitting) return;
+    widget.audio.effect('tap');
+    FocusManager.instance.primaryFocus?.unfocus();
+    final enteredName = nameController.text.trim();
+    if (enteredName.isEmpty) {
+      if (!mounted) return;
+      setState(() => showLoginError = true);
+      return;
+    }
+    setState(() {
+      submitting = true;
+      showLoginError = false;
+    });
+
+    final found = await widget.state.loginLearner(enteredName);
+    if (!mounted) return;
+    if (!found) {
+      setState(() {
+        submitting = false;
+        showLoginError = true;
+      });
+      return;
+    }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => SessionsScreen(
+          state: widget.state,
+          audio: widget.audio,
+        ),
+      ),
+      (_) => false,
+    );
+  }
+
+  void register() {
+    widget.audio.effect('tap');
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FillOutScreen(
+          state: widget.state,
+          audio: widget.audio,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final light = widget.state.lightMode;
+    final foreground = light ? const Color(0xFF06145A) : Colors.white;
+    final secondary = light ? const Color(0xFF172A68) : const Color(0xFFC5EAFF);
+
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            light
+                ? 'assets/images/light_mode_background.png'
+                : 'assets/images/dark_mode_background.png',
+            fit: BoxFit.cover,
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, viewport) => SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(22, 54, 22, 42),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        minHeight: math.max(700, viewport.maxHeight * .84),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(38, 52, 38, 52),
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(
+                            light
+                                ? 'assets/images/fill_out_panel_light.png'
+                                : 'assets/images/fill_out_panel_dark.png',
+                          ),
+                          fit: BoxFit.fill,
+                        ),
+                        borderRadius: BorderRadius.circular(42),
+                      ),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          children: [
+                            Image.asset(
+                              'assets/images/beacon_wordmark.png',
+                              width: 430,
+                              height: 145,
+                              fit: BoxFit.contain,
+                              semanticLabel: 'BEACON',
+                            ),
+                            const SizedBox(height: 58),
+                            Text(
+                              'Welcome back',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: foreground,
+                                fontSize: 39,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Continue learning Physics of Fluids.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: secondary,
+                                fontSize: 20,
+                              ),
+                            ),
+                            const SizedBox(height: 62),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Full name',
+                                style: TextStyle(
+                                  color: foreground,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: nameController,
+                              textInputAction: TextInputAction.done,
+                              textCapitalization: TextCapitalization.words,
+                              autofillHints: const [AutofillHints.name],
+                              onChanged: (_) {
+                                if (showLoginError) {
+                                  setState(() => showLoginError = false);
+                                }
+                              },
+                              onFieldSubmitted: (_) => login(),
+                              style: TextStyle(
+                                color: foreground,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Enter your full name',
+                                hintStyle: TextStyle(
+                                  color: secondary.withValues(alpha: .68),
+                                ),
+                                prefixIcon: Image.asset(
+                                  light
+                                      ? 'assets/images/Royal-blue user silhouette icon-2.png'
+                                      : 'assets/images/Cyan profile outline icon-2.png',
+                                  width: 30,
+                                  height: 30,
+                                ),
+                                filled: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 22,
+                                ),
+                                fillColor: light
+                                    ? const Color(0xEFFFFFFF)
+                                    : const Color(0xCC031B49),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF0FD9F2),
+                                    width: 2,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                  borderSide: BorderSide(
+                                    color: light
+                                        ? const Color(0xFF0878F9)
+                                        : const Color(0xFF0FD9F2),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              transitionBuilder: (child, animation) =>
+                                  SizeTransition(
+                                sizeFactor: animation,
+                                axisAlignment: -1,
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                ),
+                              ),
+                              child: showLoginError
+                                  ? Padding(
+                                      key: const ValueKey('login-error'),
+                                      padding: const EdgeInsets.only(top: 18),
+                                      child: Image.asset(
+                                        'assets/images/validation_message_card.png',
+                                        width: double.infinity,
+                                        fit: BoxFit.contain,
+                                        semanticLabel:
+                                            'Name not found on this device. Check the spelling or use the name you registered with.',
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(
+                                      key: ValueKey('no-login-error'),
+                                    ),
+                            ),
+                            const SizedBox(height: 38),
+                            Semantics(
+                              button: true,
+                              label: 'Log in',
+                              child: AnimatedScale(
+                                scale: loginButtonPressed ? 1.06 : 1,
+                                duration: const Duration(milliseconds: 130),
+                                curve: Curves.easeOut,
+                                child: InkWell(
+                                  onTap: submitting ? null : login,
+                                  onHighlightChanged: (pressed) {
+                                    if (loginButtonPressed != pressed) {
+                                      setState(
+                                        () => loginButtonPressed = pressed,
+                                      );
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(46),
+                                  child: submitting
+                                      ? const SizedBox(
+                                          height: 78,
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        )
+                                      : Image.asset(
+                                          'assets/images/Glossy blue Log in button with arrow.png',
+                                          width: 440,
+                                          fit: BoxFit.contain,
+                                          excludeFromSemantics: true,
+                                        ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  'New to BEACON? ',
+                                  style: TextStyle(
+                                    color: foreground,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: register,
+                                  child: const Text(
+                                    'Register',
+                                    style: TextStyle(
+                                      color: Color(0xFF008EF3),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Works offline • Syncs automatically when online',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: secondary.withValues(alpha: .8),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ThemeModeButton extends StatelessWidget {
   const _ThemeModeButton({required this.light, required this.onTap});
 
@@ -186,8 +517,8 @@ class _ThemeModeButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(30),
           child: Container(
-            width: 112,
-            height: 54,
+            width: 140,
+            height: 62,
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: light ? const Color(0xEFFFFFFF) : const Color(0xE60B2C68),
@@ -209,8 +540,8 @@ class _ThemeModeButton extends StatelessWidget {
                   alignment:
                       light ? Alignment.centerLeft : Alignment.centerRight,
                   child: Container(
-                    width: 42,
-                    height: 42,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: light
@@ -225,25 +556,33 @@ class _ThemeModeButton extends StatelessWidget {
                     ),
                   ),
                 ),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Icon(
-                        Icons.wb_sunny_rounded,
-                        color: light
-                            ? const Color(0xFFFFC400)
-                            : const Color(0xFF8FA8DC),
-                        size: 27,
-                      ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: Icon(
+                      Icons.wb_sunny_rounded,
+                      color: light
+                          ? const Color(0xFFFFC400)
+                          : const Color(0xFF8FA8DC),
+                      size: 29,
                     ),
-                    Expanded(
-                      child: Icon(
-                        Icons.dark_mode_rounded,
-                        color: light ? Colors.white : const Color(0xFFF2F5FF),
-                        size: 26,
-                      ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: Icon(
+                      Icons.dark_mode_rounded,
+                      color: light
+                          ? const Color(0xFFD9E7F5)
+                          : const Color(0xFFF8FAFF),
+                      size: 29,
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),

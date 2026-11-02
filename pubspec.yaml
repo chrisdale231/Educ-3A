@@ -55,6 +55,7 @@ flutter:
     - assets/images/Glossy Neon View Details Button-9.png
     - .env
     - assets/images/
+    - assets/images/concept/
     - assets/audio/
     - assets/video/
     - sqlite/

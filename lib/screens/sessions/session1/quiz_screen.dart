@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/app_state.dart';
-import '../services/audio_service.dart';
+import '../../../services/app_state.dart';
+import '../../../services/audio_service.dart';
 
 class QuizItem {
   const QuizItem(this.prompt, this.choices, this.answer);

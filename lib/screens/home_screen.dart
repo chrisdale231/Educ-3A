@@ -1,13 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import '../services/app_state.dart';
 import '../services/audio_service.dart';
-import 'concept_screen.dart';
 import 'exit.dart';
-import 'game_screen.dart';
 import 'profile.dart';
-import 'quiz_screen.dart';
 import 'settings_screen.dart';
-import 'simulation_screen.dart';
+import 'sessions/session1/concept_screen.dart';
+import 'sessions/session1/game_screen.dart';
+import 'sessions/session1/quiz_screen.dart';
+import 'sessions/session1/simulation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.state, required this.audio});

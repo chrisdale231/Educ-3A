@@ -29,6 +29,28 @@ class StudentSyncService extends ChangeNotifier {
   bool get configured => BackendConfig.isConfigured;
   bool get hasLearnerIdentity => _client?.auth.currentUser != null;
 
+  Future<Map<String, Object?>?> findLearnerProfile(String name) async {
+    final client = _client;
+    final normalizedName = name.trim();
+    if (client == null || normalizedName.isEmpty) return null;
+    try {
+      final response = await client.rpc<Object?>(
+        'find_learner_profile',
+        params: <String, Object?>{'p_display_name': normalizedName},
+      );
+      if (response is! List || response.isEmpty) return null;
+      final row = response.first;
+      if (row is! Map) return null;
+      return row.map<String, Object?>(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    } on Object catch (error, stackTrace) {
+      debugPrint('Online learner lookup unavailable: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return null;
+    }
+  }
+
   Future<void> initialize({required bool databaseReady}) async {
     _databaseReady = databaseReady;
     if (databaseReady) {
@@ -100,7 +122,17 @@ class StudentSyncService extends ChangeNotifier {
     _syncRequested = false;
     User? user;
     try {
-      user = client.auth.currentUser ?? await _ensureAnonymousLearner();
+      user = client.auth.currentUser;
+      if (user == null) {
+        pendingCount = await _database.pendingMutationCount();
+        if (pendingCount == 0) {
+          phase = SyncPhase.local;
+          _syncRunning = false;
+          notifyListeners();
+          return;
+        }
+        user = await _ensureAnonymousLearner();
+      }
     } on Object catch (error, stackTrace) {
       debugPrint('Learner authentication deferred: $error');
       debugPrintStack(stackTrace: stackTrace);

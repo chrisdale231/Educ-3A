@@ -33,6 +33,7 @@ class AppState extends ChangeNotifier {
   int bestQuizScore = 0;
   int multipleChoiceUnlockedLevel = 1;
   int enumerationUnlockedLevel = 1;
+  final List<int> _conceptSteps = List<int>.filled(8, 0);
 
   bool get isTagalog => languageCode == 'tl';
 
@@ -106,6 +107,10 @@ class AppState extends ChangeNotifier {
     bestQuizScore = await _prefs.getInt('bestQuizScore') ?? 0;
     multipleChoiceUnlockedLevel = await _prefs.getInt('quiz_mc_unlocked') ?? 1;
     enumerationUnlockedLevel = await _prefs.getInt('quiz_enum_unlocked') ?? 1;
+    for (var session = 1; session <= 8; session++) {
+      _conceptSteps[session - 1] =
+          await _prefs.getInt('concept_step_$session') ?? 0;
+    }
   }
 
   void _applyDatabaseState(Map<String, Object?> values) {
@@ -136,6 +141,10 @@ class AppState extends ChangeNotifier {
     multipleChoiceUnlockedLevel =
         databaseInt('multiple_choice_unlocked_level', 1);
     enumerationUnlockedLevel = databaseInt('enumeration_unlocked_level', 1);
+    for (var session = 1; session <= 8; session++) {
+      _conceptSteps[session - 1] =
+          databaseInt('concept_step_$session', _conceptSteps[session - 1]);
+    }
   }
 
   Future<void> _saveAllToDatabase() async {
@@ -144,6 +153,11 @@ class AppState extends ChangeNotifier {
       _database.saveSetting('soundOn', soundOn ? 1 : 0),
       _database.saveSetting('lightMode', lightMode ? 1 : 0),
       _database.saveSetting('languageCode', languageCode),
+      for (var session = 1; session <= 8; session++)
+        _database.saveSetting(
+          'concept_step_$session',
+          _conceptSteps[session - 1],
+        ),
       _database.saveProfile(
         name: learnerName,
         age: learnerAge,
@@ -230,6 +244,52 @@ class AppState extends ChangeNotifier {
       learnerAge != null &&
       learnerGradeLevel.isNotEmpty;
 
+  Future<bool> loginLearner(String name) async {
+    final enteredName = name.trim();
+    if (enteredName.isEmpty) return false;
+    if (hasLearnerProfile &&
+        learnerName.trim().toLowerCase() == enteredName.toLowerCase()) {
+      return true;
+    }
+
+    final remote = await sync.findLearnerProfile(enteredName);
+    if (remote == null) return false;
+    final remoteName = remote['display_name']?.toString().trim() ?? '';
+    final remoteAge = remote['age'] is int
+        ? remote['age'] as int
+        : int.tryParse(remote['age']?.toString() ?? '');
+    final remoteGrade = remote['grade_level']?.toString().trim() ?? '';
+    if (remoteName.isEmpty || remoteAge == null || remoteGrade.isEmpty) {
+      return false;
+    }
+
+    learnerName = remoteName;
+    learnerAge = remoteAge;
+    learnerGradeLevel = remoteGrade;
+    learnerSection = remote['section']?.toString().trim() ?? '';
+    learnerGender = remote['gender'] == 'female' ? 'female' : 'male';
+    notifyListeners();
+
+    if (_databaseReady) {
+      await _database.saveProfile(
+        name: learnerName,
+        age: learnerAge,
+        grade: learnerGradeLevel,
+        section: learnerSection,
+        gender: learnerGender,
+        photo: learnerPhotoBytes,
+      );
+    }
+    await Future.wait(<Future<void>>[
+      _prefs.setString('learnerName', learnerName),
+      _prefs.setInt('learnerAge', learnerAge!),
+      _prefs.setString('learnerGradeLevel', learnerGradeLevel),
+      _prefs.setString('learnerSection', learnerSection),
+      _prefs.setString('learnerGender', learnerGender),
+    ]);
+    return true;
+  }
+
   Future<void> setLearnerProfile(
     String name,
     int age,
@@ -311,6 +371,25 @@ class AppState extends ChangeNotifier {
       await _database.saveSetting('languageCode', value);
     } else {
       await _prefs.setString('languageCode', value);
+    }
+  }
+
+  int conceptStepForSession(int session) {
+    RangeError.checkValueInInterval(session, 1, 8, 'session');
+    return _conceptSteps[session - 1];
+  }
+
+  Future<void> saveConceptStep(int session, int step) async {
+    RangeError.checkValueInInterval(session, 1, 8, 'session');
+    final savedStep = step.clamp(0, 10);
+    if (savedStep <= _conceptSteps[session - 1]) return;
+    _conceptSteps[session - 1] = savedStep;
+    notifyListeners();
+    final key = 'concept_step_$session';
+    if (_databaseReady) {
+      await _database.saveSetting(key, savedStep);
+    } else {
+      await _prefs.setInt(key, savedStep);
     }
   }
 
